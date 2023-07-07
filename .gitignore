@@ -1,0 +1,8 @@
+/data/
+/output/
+*.nb.html
+/.RData
+/.Rhistory
+/.Rproj.user/
+/Kyn 072023/
+/TDO 072023/
