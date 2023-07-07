@@ -1,0 +1,75 @@
+---
+title: "R Coig's TAG Notebook for July 2023 TDO experiment - Pupation Data"
+output: html_notebook
+date:   7/7/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+```
+Read in data
+```{r,read in raw data}
+Pupae <- read.csv("TDO 072023/TDO Pupation.csv")
+Pupae$group<-factor(Pupae$group, levels=c('TDO 2.5mM', 'TDO 5mM', 'TDO 10mM'))
+Pupae$NormHeigh<-Pupae$PupalHeight/Pupae$FinalPupae
+TDOHighPupae<-Pupae%>%filter(group=="TDO 10mM")
+TDOMidPupae<-Pupae%>%filter(group=="TDO 5mM")
+TDOLowPupae<-Pupae%>%filter(group=="TDO 2.5mM")
+DMSOPupae<-Pupae%>%filter(Treatment=="DMSO")
+```
+
+```{r}
+p <- ggboxplot(Pupae, x = "Treatment", y = "PupalHeight",
+          color = "Treatment", palette = c("purple", "black"),
+          add = "jitter")+
+  facet_wrap(~group)+
+  ylab("Pupal Height")+
+  ggtitle("Pupal Height by Treatment, w[1118]")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Pupae, x = "Treatment", y = "NormHeigh",
+          color = "Treatment", palette = c("purple", "black"),
+          add = "jitter")+
+  facet_wrap(~group)+
+  ylab("Average Pupal Height")+
+  ggtitle("Pupal Height by Treatment, w[1118]")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Pupae, x = "Treatment", y = "PupationRate",
+          color = "Treatment", palette = c("purple", "black"),
+          add = "jitter")+
+  facet_wrap(~group)+
+  ylab("Pupation Rate")+
+  ggtitle("Pupation Rate by Treatment, w[1118]")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(DMSOPupae, x = "Color", y = "PupalHeight",
+          color = "black",
+          add = "jitter")+
+  #facet_wrap(~group)
+  ggtitle("Pupal Height by DMSO %")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(DMSOPupae, x = "Color", y = "PupationRate",
+          color = "black", #palette = c("purple", "black"),
+          add = "jitter")+
+  #facet_wrap(~group)
+  ggtitle("Pupation Rate by DMSO %")
+#  Add p-value
+p + stat_compare_means()
+```
+ANOVAS
+```{r}
+summary(aov(PupalHeight ~ Color, data = DMSOPupae))
+summary(aov(NormHeigh ~ Color, data = DMSOPupae))
+summary(aov(PupationRate ~ Color, data = DMSOPupae))
+
+```
