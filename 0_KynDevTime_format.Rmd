@@ -1,0 +1,118 @@
+---
+title: "R Coig's TAG Notebook for July 2023 Kyn experiment - Formatting Pupae Development Time"
+output: html_notebook
+date:   7/31/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(tidyr)
+```
+Read in data
+```{r}
+Dev <- read.csv("Kyn 072023/Kyn1Development.csv")
+Key <- read.csv("Kyn 072023/Kyn1pupation.csv")
+```
+
+```{r}
+TinyP<-Key%>%
+  group_by(Treatment) %>%
+  summarise(
+    Treatment = Treatment,
+    Tinies = mean(TinyPupae, na.rm = TRUE))
+TinyP<-distinct(TinyP)
+```
+
+
+```{r}
+Key2<-Key%>%select("Vial","EggPicker","Npupae","Date.Started","Geno","Treatment")
+Dev<-merge(Key2,Dev,by="Vial")
+```
+
+
+```{r}
+Dev$Start<-paste(Dev$Date.Started,"10:00 AM")
+Dev$Start <- as.POSIXct(Dev$Start, format = "%m/%d/%Y %I:%M %p")
+
+Dev$Collected<-paste(Dev$Date,Dev$Time)
+Dev$Collected <- as.POSIXct(Dev$Collected, format = "%m/%d/%Y %I:%M %p")
+```
+
+
+```{r}
+# Calculate the time passed in hours
+Dev$Hours <- as.numeric(difftime(with(Dev, Collected), 
+                                            with(Dev, Start), 
+                                            units = "hours"))
+```
+
+
+```{r}
+DevTime<-Dev %>%select("Vial","Hours","Male","Female")
+DevTime$Hours<-as.factor(DevTime$Hours)
+
+# Function to add missing rows for each Vial with missing Hours and set Male and Female to zero
+add_missing_rows <- function(dataframe) {
+  all_hours <- unique(dataframe$Hours)  # Get all unique Hours levels in the dataframe
+  all_vials <- unique(dataframe$Vial)   # Get all unique Vials in the dataframe
+
+  # Create a template dataframe with all combinations of Vial and Hours
+  template_df <- expand.grid(Vial = all_vials, Hours = all_hours)
+  
+  # Merge the template dataframe with the original dataframe to add missing rows
+  new_df <- merge(template_df, dataframe, all.x = TRUE)
+  
+  # Replace NA values in Male and Female columns with zero
+  new_df$Male <- replace_na(new_df$Male, 0)
+  new_df$Female <- replace_na(new_df$Female, 0)
+  
+  return(new_df)
+}
+
+# Add missing rows for each Vial with missing Hours and set Male and Female to zero
+DevTime2 <- add_missing_rows(DevTime)
+```
+
+
+```{r}
+DevTime2M<-DevTime2%>%select("Vial","Hours","Male")
+DevTime2M<-DevTime2M%>%rename("N"="Male")
+DevTime2M$Sex<-"Male"
+
+# Calculate the cumulative sum of the 'Value' column for each Vial
+DevTime2M <- DevTime2M %>%
+  group_by(Vial) %>%
+  mutate(CumulativeSum = cumsum(N))
+
+DevTime2F<-DevTime2%>%select("Vial","Hours","Female")
+DevTime2F<-DevTime2F%>%rename("N"="Female")
+DevTime2F$Sex<-"Female"
+
+# Calculate the cumulative sum of the 'Value' column for each Vial
+DevTime2F <- DevTime2F %>%
+  group_by(Vial) %>%
+  mutate(CumulativeSum = cumsum(N))
+
+DevTime<-rbind(DevTime2M,DevTime2F)
+
+DevTime2<-merge(Key2,DevTime,by="Vial")
+```
+
+```{r}
+DevTime2$Remaining<-DevTime2$Npupae-DevTime2$CumulativeSum
+
+Key%>%group_by(Color) %>%
+summarise(
+    Treatment = Treatment,
+    Totalpupae = sum(Npupae, na.rm = TRUE))->TotalP
+TotalP<-distinct(TotalP)
+
+DevTime2<-merge(DevTime2,TotalP,by="Treatment")
+```
+
+
+```{r}
+write.csv(DevTime2, "Kyn 072023/Kyn1 DevTime2.csv", row.names = FALSE)
+```
