@@ -1,0 +1,273 @@
+---
+title: "R Coig's TAG Notebook for July 2023 TDO2 experiment - Pupae Development Time"
+output: html_notebook
+date:   7/27/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(growthcurver)
+```
+
+
+Read in data
+```{r,read in raw data}
+Dev<-read.csv("TDO 072023/TDO2 DevTime2.csv")
+```
+Compute sums
+```{r eval=FALSE, include=FALSE}
+Dev%>%group_by(Color,Hours,Sex) %>%
+  summarise(
+    Sex = Sex,
+    Treatment = Treatment,
+    Color = Color,
+    Hours=Hours,
+    Totalpupae=Totalpupae,
+    NTreat = sum(CumulativeSum, na.rm = TRUE))->Dev_Sum
+Dev_Sum<-distinct(Dev_Sum)
+Dev_Sum$Color<-as.factor(Dev_Sum$Color)
+levels(Dev_Sum$Color)
+
+Dev%>%group_by(Color,Hours,Sex,EggPicker) %>%
+  summarise(
+    Sex = Sex,
+    EggPicker = EggPicker,
+    Treatment = Treatment,
+    Color = Color,
+    Hours=Hours,
+    Totalpupae=Totalpupae,
+    NTreat = sum(CumulativeSum, na.rm = TRUE))->Dev_Sum2
+Dev_Sum2<-distinct(Dev_Sum2)
+Dev_Sum2$Color<-as.factor(Dev_Sum2$Color)
+
+Dev%>%group_by(Color,Hours,Sex,Group) %>%
+  summarise(
+    Sex = Sex,
+    Group = Group,
+    Treatment = Treatment,
+    Color = Color,
+    Hours=Hours,
+    Totalpupae=Totalpupae,
+    NTreat = sum(CumulativeSum, na.rm = TRUE))->Dev_Sum3
+Dev_Sum3<-distinct(Dev_Sum3)
+Dev_Sum3$Color<-as.factor(Dev_Sum3$Color)
+
+```
+Compute sums remaining
+```{r}
+Dev_Sum$Rem<-Dev_Sum$Totalpupae-Dev_Sum$NTreat
+Dev_Sum$Prop<-Dev_Sum$Rem/Dev_Sum$Totalpupae
+Dev_Sum2$Rem<-Dev_Sum2$Totalpupae-Dev_Sum2$NTreat
+Dev_Sum2$Prop<-Dev_Sum2$Rem/Dev_Sum2$Totalpupae
+Dev_Sum3$Rem<-Dev_Sum3$Totalpupae-Dev_Sum3$NTreat
+Dev_Sum3$Prop<-Dev_Sum3$Rem/Dev_Sum3$Totalpupae
+Dev$Rem<-Dev$Npupae-Dev$CumulativeSum
+Dev$Prop<-Dev$Rem/Dev$Npupae
+```
+
+```{r}
+TDO10<-Dev_Sum2%>%filter(Color=="Blue2"|Color=="Red1")
+TDO15<-Dev_Sum2%>%filter(Color=="Blue2"|Color=="Red2")
+TDO20<-Dev_Sum2%>%filter(Color=="Blue3"|Color=="Red3")
+
+ggplot(TDO10, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~EggPicker)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("TDO Inhibitor, 10mM, w[1118]")
+
+ggplot(TDO15, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~EggPicker)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("TDO Inhibitor, 15mM, w[1118]")
+
+ggplot(TDO20, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~EggPicker)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("TDO Inhibitor, 20mM, w[1118]")
+```
+
+```{r}
+TDO10<-Dev_Sum2%>%filter(Color=="Blue2"|Color=="Red1")
+TDO15<-Dev_Sum2%>%filter(Color=="Blue2"|Color=="Red2")
+TDO20<-Dev_Sum2%>%filter(Color=="Blue3"|Color=="Red3")
+
+ggplot(TDO10, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~EggPicker)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("TDO Inhibitor, 10mM, w[1118]")
+
+ggplot(TDO15, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~EggPicker)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("TDO Inhibitor, 15mM, w[1118]")
+
+ggplot(TDO20, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~EggPicker)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("TDO Inhibitor, 20mM, w[1118]")
+```
+
+```{r}
+TDO10<-Dev_Sum3%>%filter(Color=="Blue2"|Color=="Red1")
+TDO10b<-Dev_Sum%>%filter(Color=="Blue2"|Color=="Red1")
+TDO15<-Dev_Sum3%>%filter(Color=="Blue2"|Color=="Red2")
+TDO15b<-Dev_Sum%>%filter(Color=="Blue2"|Color=="Red2")
+TDO20<-Dev_Sum3%>%filter(Color=="Blue3"|Color=="Red3")
+TDO20b<-Dev_Sum%>%filter(Color=="Blue3"|Color=="Red3")
+
+
+ggplot(TDO10, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Population")+
+  ylim(0,120)+
+  ggtitle("TDO Inhibitor, 10mM, w[1118]")
+
+ggplot(TDO10b, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  #facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Population")+
+  ylim(0,120)+
+  ggtitle("TDO Inhibitor, 10mM, w[1118]")
+
+ggplot(TDO15, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Population")+
+  ylim(0,120)+
+  ggtitle("TDO Inhibitor, 15mM, w[1118]")
+
+ggplot(TDO15b, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  #facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Population")+
+  ylim(0,120)+
+  ggtitle("TDO Inhibitor, 15mM, w[1118]")
+
+ggplot(TDO20, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Population")+
+  ylim(0,120)+
+  ggtitle("TDO Inhibitor, 20mM, w[1118]")
+
+ggplot(TDO20b, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  #facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Population")+
+  ylim(0,120)+
+  ggtitle("TDO Inhibitor, 20mM, w[1118]")
+
+ggplot(Dev, aes(x = Hours, y = CumulativeSum, group = interaction(Vial,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Color+Group+Sex)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("Eclosion Time by Vial and DMSO % Sex, w[1118]")
+```
+
+```{r}
+TDO10<-Dev_Sum3%>%filter(Color=="Blue2"|Color=="Red1")
+TDO10b<-Dev_Sum%>%filter(Color=="Blue2"|Color=="Red1")
+TDO15<-Dev_Sum3%>%filter(Color=="Blue2"|Color=="Red2")
+TDO15b<-Dev_Sum%>%filter(Color=="Blue2"|Color=="Red2")
+TDO20<-Dev_Sum3%>%filter(Color=="Blue3"|Color=="Red3")
+TDO20b<-Dev_Sum%>%filter(Color=="Blue3"|Color=="Red3")
+
+
+ggplot(TDO10, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("TDO Inhibitor, 10mM, w[1118]")
+
+ggplot(TDO10b, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  #facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("TDO Inhibitor, 10mM, w[1118]")
+
+ggplot(TDO15, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("TDO Inhibitor, 15mM, w[1118]")
+
+ggplot(TDO15b, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  #facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("TDO Inhibitor, 15mM, w[1118]")
+
+ggplot(TDO20, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("TDO Inhibitor, 20mM, w[1118]")
+
+ggplot(TDO20b, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  #facet_grid(~Group)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("TDO Inhibitor, 20mM, w[1118]")
+
+ggplot(Dev, aes(x = Hours, y = Prop, group = interaction(Vial,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~Color+Group+Sex)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("Eclosion Time by Vial and DMSO % Sex, w[1118]")
+```
+
+ANOVAS
+```{r}
+
+```
