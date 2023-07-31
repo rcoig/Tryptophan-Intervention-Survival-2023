@@ -1,0 +1,81 @@
+---
+title: "R Coig's TAG Notebook for July 2023 Kyn1 experiment - Pupae Development Time"
+output: html_notebook
+date:   7/31/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(growthcurver)
+```
+Read in data
+```{r,read in raw data}
+Dev<-read.csv("Kyn 072023/Kyn1 DevTime2.csv")
+```
+Compute sums
+```{r eval=FALSE, include=FALSE}
+Dev%>%group_by(Treatment,Hours,Sex) %>%
+  summarise(
+    Sex = Sex,
+    Treatment = Treatment,
+    Hours=Hours,
+    Totalpupae=Totalpupae,
+    NTreat = sum(CumulativeSum, na.rm = TRUE))->Dev_Sum
+Dev_Sum<-distinct(Dev_Sum)
+Dev_Sum$Treatment<-as.factor(Dev_Sum$Treatment)
+levels(Dev_Sum$Treatment)
+```
+Compute sums remaining
+```{r}
+Dev_Sum$Rem<-Dev_Sum$Totalpupae-Dev_Sum$NTreat
+Dev_Sum$Prop<-Dev_Sum$Rem/Dev_Sum$Totalpupae
+Dev$Rem<-Dev$Npupae-Dev$CumulativeSum
+Dev$Prop<-Dev$Rem/Dev$Npupae
+```
+
+```{r}
+ggplot(Dev_Sum, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple","red","mediumblue", "darkblue"))+
+  #facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("Kyn1 Experiment, w[1118]")+
+  theme_classic()
+
+ggplot(Dev_Sum, aes(x = Hours, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple","red","mediumblue", "darkblue"))+
+  facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Population")+
+  ggtitle("Kyn1 Experiment, w[1118]")
+```
+Proportion uneclosed
+```{r}
+ggplot(Dev_Sum, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple","red","mediumblue", "darkblue"))+
+  #facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("Kyn Experiment, w[1118]")+
+  theme_classic()
+
+ggplot(Dev_Sum, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple","red","mediumblue", "darkblue"))+
+  facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("Kyn Experiment, w[1118]")
+```
+
+ANOVAS
+```{r}
+
+```
