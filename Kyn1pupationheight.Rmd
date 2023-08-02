@@ -1,0 +1,157 @@
+---
+title: "R Coig's TAG Notebook for July 2023 Kyn1 experiment - Pupation Data"
+output: html_notebook
+date:   7/31/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+```
+Read in data
+```{r,read in raw data}
+Pupae <- read.csv("Kyn 072023/Kyn1pupation.csv")
+HeightsTop<-Pupae%>%select("Vial","Treatment","Npupae","Top","Top.O.s","Top.X.s")
+HeightsMid<-Pupae%>%select("Vial","Treatment","Npupae","Middle","Mid.O.s","Mid.X.s")
+HeightsBot<-Pupae%>%select("Vial","Treatment","Npupae","Bottom","Bot.O.s","Bot.X.s")
+```
+Calulating Average Pupation Heights per vial
+```{r}
+HeightsTop[is.na(HeightsTop)] <- 0
+
+HeightsTop%>%group_by(Treatment)%>%
+  summarise(
+    N = sum(Npupae),
+    All = sum(Top),
+    Male = sum(Top.O.s),
+    Female = sum(Top.X.s),
+    Height = 1.875,
+    Level = factor(c("Top"))
+  )-> HeightsTopAvg
+
+# Replace NA with 0 in the data frame
+HeightsMid[is.na(HeightsMid)] <- 0
+
+HeightsMid%>%group_by(Treatment)%>%
+  summarise(
+    N = sum(Npupae),
+    All = sum(Middle),
+    Male = sum(Mid.O.s),
+    Female = sum(Mid.X.s),
+    Height = 1.125,
+    Level = factor(c("Mid"))
+  )-> HeightsMidAvg
+
+# Replace NA with 0 in the data frame
+HeightsBot[is.na(HeightsBot)] <- 0
+
+HeightsBot%>%group_by(Treatment)%>%
+  summarise(
+    N = sum(Npupae),
+    All = sum(Bottom),
+    Male = sum(Bot.O.s),
+    Female = sum(Bot.X.s),
+    Height = .5,
+    Level = factor(c("Bot"))
+  )-> HeightsBotAvg
+
+HeightsAvg<-rbind(HeightsTopAvg,HeightsMidAvg,HeightsBotAvg)
+HeightsAvgM<-HeightsAvg%>%select(-"Female")
+HeightsAvgM$Sex<-"Male"
+HeightsAvgM <- HeightsAvgM %>%
+  rename(Num = Male)
+HeightsAvgF<-HeightsAvg%>%select(-"Male")
+HeightsAvgF$Sex<-"Female"
+HeightsAvgF <- HeightsAvgF %>%
+  rename(Num = Female)
+HeightsSex<-rbind(HeightsAvgF,HeightsAvgM)
+```
+
+
+```{r}
+# Function to duplicate rows based on the "All" column
+duplicate_rows <- function(df) {
+  df[rep(seq_len(nrow(df)), df$All), ]
+}
+
+# Function to duplicate rows based on the "Male" column
+duplicate_rows2 <- function(df) {
+  df[rep(seq_len(nrow(df)), df$Num), ]
+}
+
+HeightsAvg<-duplicate_rows(HeightsAvg)
+HeightsSex<-duplicate_rows2(HeightsSex)
+
+
+
+summary_stats <- HeightsAvg %>%
+  group_by(Treatment) %>%
+  summarise(
+    Mean_Height = mean(Height, na.rm = TRUE),
+    Median_Height = median(Height, na.rm = TRUE),
+    SD_Height = sd(Height, na.rm = TRUE)
+  )
+```
+Plotting
+```{r}
+# Create the violin plot
+ggplot(HeightsAvg, aes(x = Treatment, y = Height, fill = Treatment)) +
+  geom_violin(scale = "width", trim = FALSE, width = 0.8, show.legend = F) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.5, color="darkgray") +
+  scale_y_continuous(breaks = c(0.5, 1.125, 1.875),
+                     labels = c("bottom", "middle", "top"))+
+  ylab("Pupal Height") +
+  ggtitle("Pupal Height by Treatment, w[1118]") +
+  scale_fill_manual(values = c("purple", "red", "mediumblue", "darkblue"))+
+  theme(legend.position = "none",
+        guide = guide_legend(fill = F)) +
+  theme_classic()
+
+ggplot(HeightsAvgM, aes(x = Treatment, y = Height, fill = Treatment)) +
+  geom_violin(scale = "width", trim = FALSE, width = 0.8, show.legend = F) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.5, color="darkgray") +
+  scale_y_continuous(breaks = c(0.5, 1.125, 1.875),
+                     labels = c("bottom", "middle", "top"))+
+  ylab("Pupal Height") +
+  ggtitle("Male Pupal Height by Treatment, w[1118]") +
+  scale_fill_manual(values = c("purple", "red", "mediumblue", "darkblue"))+
+  theme(legend.position = "none",
+        guide = guide_legend(fill = F)) +
+  theme_classic()
+
+ggplot(HeightsSex, aes(x = Sex, y = Height, fill = Treatment)) +
+  geom_violin(scale = "width", trim = FALSE, width = 0.8, show.legend = F) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.5, color="darkgray") +
+  scale_y_continuous(breaks = c(0.5, 1.125, 1.875),
+                     labels = c("bottom", "middle", "top"))+
+  facet_grid(~Treatment)+
+  ylab("Pupal Height") +
+  ggtitle("Female Pupal Height by Treatment, w[1118]") +
+  scale_fill_manual(values = c("purple", "red", "mediumblue", "darkblue"))+
+  theme(legend.position = "none",
+        guide = guide_legend(fill = F)) +
+  theme_classic()
+```
+ANOVAS
+```{r}
+# One-way ANOVA
+anova_result <- summary(aov(Height ~ Treatment, data = HeightsAvg))
+anova_result2 <- summary(aov(Height ~ Treatment*Sex, data = HeightsSex))
+
+# Tukey's HSD post hoc test
+posthoc_test <- TukeyHSD(aov(Height ~ Treatment, data = HeightsAvg))
+posthoc_test2 <- TukeyHSD(aov(Height ~ Treatment*Sex, data = HeightsSex))
+
+# View ANOVA results
+print(anova_result)
+print(anova_result2)
+
+# View Tukey's HSD post hoc test results
+print(posthoc_test)
+print(posthoc_test2)
+
+
+```
