@@ -1,0 +1,142 @@
+---
+title: "R Coig's TAG Notebook for July 2023 Kyn experiment - Climbing Assays"
+output: html_notebook
+date:   8/2/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+```
+Read in data
+```{r,read in raw data}
+Climb1 <- read.csv("Kyn 072023/kyn_slopes_concatenated.csv")#9:30am  8/1/23
+Climb1b <- read.csv("Kyn 072023/kyn_individual_slopes.csv")#9:30am  8/1/23 individuals
+Key<-read.csv("Kyn 072023/Kyn1Lifespan.csv")
+Key<-Key%>%select("vialID","Treatment","sex","dateEclosed")
+Key <- Key[-c(99:102), ]
+
+
+Climb <- merge(Climb1,Key,by=c("vialID"))
+Climbind <- merge(Climb1b,Key,by=c("vialID"))
+Climb$sex<-as.factor(Climb$sex)
+Climbind$sex<-as.factor(Climbind$sex)
+Climb$Treatment<-as.factor(Climb$Treatment)
+Climbind$Treatment<-as.factor(Climbind$Treatment)
+```
+Compute means
+```{r eval=FALSE, include=FALSE}
+Climb%>%group_by(vial_ID,Trial) %>%
+  summarise(
+    Sex = Sex,
+    Trial=Trial,
+    batch = batch,
+    group=group,
+    Treatment = Treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_Mean
+Climb%>%group_by(vial_ID,Trial) %>%
+  summarise(
+    Sex = Sex,
+    Trial=Trial,
+    group=group,
+    Treatment = Treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_Mean2
+Climb%>%group_by(vial_ID) %>%
+  summarise(
+    Sex = Sex,
+    batch = batch,
+    group=group,
+    Treatment = Treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_MeanTrial
+Climb_Mean<-distinct(Climb_Mean)
+Climb_Mean2<-distinct(Climb_Mean2)
+Climb_MeanTrial<-distinct(Climb_MeanTrial)
+
+Climb_Mean$group<-factor(Climb_Mean$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+Climb_Mean2$group<-factor(Climb_Mean2$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+Climb_MeanTrial$group<-factor(Climb_MeanTrial$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+
+DMSO<-Climb_Mean%>%filter(Treatment=="DMSO")
+TDOlow<-Climb_Mean%>%filter(group=="1")
+TDOmid<-Climb_Mean%>%filter(group=="2")
+TDOhigh<-Climb_Mean%>%filter(group=="3")
+
+```
+Climbing by Vial
+```{r}
+p <- ggboxplot(Climb, x = "Treatment", y = "slope", #palette = c("black", "red"),
+          add = "jitter")+
+  #facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Vial")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Climb, x = "Treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  #facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Vial")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Climb, x = "Treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Vial")
+#  Add p-value
+p + stat_compare_means()
+
+
+```
+
+Climbing by Individual
+```{r}
+p <- ggboxplot(Climbind, x = "Treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Individual")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Climbind, x = "Treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  #facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Individual")
+#  Add p-value
+p + stat_compare_means()
+
+ggboxplot(Climbind, x = "batch", y = "slope",
+          color = "Treatment", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~Treatment+sex)+
+  ggtitle("Climbing by Individual")
+
+```
+
+
+```{r}
+p <- ggboxplot(Climbind, x = "startFrame", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~Treatment)+
+  ggtitle("Climbing by Individual")
+#  Add p-value
+p + stat_compare_means()
+```
+ANOVAS
+```{r}
+summary(aov(slope ~ Treatment*sex*dateEclosed, data = Climb))
+summary(aov(slope ~ Treatment*sex*dateEclosed, data = Climbind))
+```
