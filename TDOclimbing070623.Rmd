@@ -1,0 +1,401 @@
+---
+title: "R Coig's Notebook for July 2023 TDO experiment - Climbing Assays, Eclosion was 7/4-7/6 2023 at 3 concentrations (2.5mM,5mM,10mM) - TDO2 - Climbing Assays, Eclosion was 7/24-7/26 2023 at 3 concentrations (10mM,15mM,20mM)"
+output: html_notebook
+date:   7/7/23
+updated: 8/9/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(janitor)
+```
+Read in TDO1 data for data with only one rep per trial
+```{r,read in TDO1 1-rep data}
+TDO1Climb1 <- read.csv("data/TDO1/TDOClimbingTrial1.csv")#11am on 7/6/23 (1-2 days)
+TDO1Climb2 <- read.csv("data/TDO1/TDOClimbingTrial2.csv")#11am on 7/7/23 (2-3 days)
+TDO1Climb3 <- read.csv("data/TDO1/TDOClimbingTrial3.csv")#3pm on 7/7/23 (2-3 days)
+TDO1Climb4 <- read.csv("data/TDO1/TDOClimbingTrial4.csv")#11am on 7/10/23 (4-6 days)
+TDO1Climb <- rbind(TDO1Climb1,TDO1Climb2,TDO1Climb3,TDO1Climb4)#appending these data together
+rm(TDO1Climb1,TDO1Climb2,TDO1Climb3,TDO1Climb4)#removing extraneous files from environment
+TDO1Climb1ind <- read.csv("data/TDO1/lilyday0_individual_slopes.csv")#11am on 7/6/23 (1-2 days)
+TDO1Climb1ind$trial<-1
+TDO1Climb2ind <- read.csv("data/TDO1/lilyday1_individual_slopes.csv")#11am on 7/7/23 (2-3 days)
+TDO1Climb2ind$trial<-2
+TDO1Climb3ind <- read.csv("data/TDO1/lilyday1_5_individual_slopes.csv")#3pm on 7/7/23 (2-3 days)
+TDO1Climb3ind$trial<-3
+TDO1Climb4ind <- read.csv("data/TDO1/lilyday2_individual_slopes.csv")#11am on 7/10/23 (4-6 days)
+TDO1Climb4ind$trial<-4
+TDO1Climbind <- rbind(TDO1Climb1ind,TDO1Climb2ind,TDO1Climb3ind,TDO1Climb4ind)#appending these data together
+rm(TDO1Climb1ind,TDO1Climb2ind,TDO1Climb3ind,TDO1Climb4ind)#removing extraneous files from environment
+```
+Read in TDO1 data with 3 reps per trial
+```{r,read in TDO1 3-rep data}
+TDO1Climb5 <- read.csv("data/TDO1/TDOClimbingTrial5.csv")#10am on 7/28/23 (23 days)
+#TDO1Climb6 <- read.csv("data/TDO1/NAMEOFNEWDATAHERE.csv")#11am on 8/10/23 (37 days) #this is where new data goes
+TDO1Climb5ind <- read.csv("data/TDO1/do1_individual_slopes.csv")#10am on 7/28/23 (23 days)
+TDO1Climb5ind$trial<-5
+#TDO1Climb6ind <- read.csv("data/TDO1/NAMEOFNEWDATAHERE.csv")#11am on 8/10/23 (37 days) #this is where new data goes
+```
+Adding a "rep" column for the 1-rep data, and creating a single dataframe for group and individual data
+```{r}
+TDO1Climb$rep<-"1" #adding the column for rep so that later when we combine with Climb5, we will have all the same columns
+TDO1Climb <- rbind(TDO1Climb,TDO1Climb5)#now all of the data is combined (Here is where you would add Climb6 group data) 
+TDO1Climbind$rep<-"1"
+
+```
+
+```{r,read in TDO1 individual data}
+TDO1Climb5ind<-clean_names(TDO1Climb5ind)
+
+TDO1Climb5ind2<-TDO1Climb5
+TDO1Climb5ind2$slope<-NULL
+TDO1Climb5ind<-merge(TDO1Climb5ind,TDO1Climb5ind2,by=c("vial_ID","batch"))
+
+TDO1Climbind<-clean_names(TDO1Climbind)
+TDO1Climb5ind<-TDO1Climb5ind%>%select("day","name","vial_id","pos","batch","slope","start_frame","end_frame","rsquare","trial","rep")
+TDO1Climbind <- rbind(TDO1Climbind,TDO1Climb5ind)
+TDO1_Key<-TDO1Climb%>%select("vial_id","sex","n","color","treatment","group")
+TDO1Climbind<-merge(TDO1_Key,TDO1Climbind,by="vial_id")
+TDO1Climbind<-distinct(TDO1Climbind)
+rm(TDO1Climb1,TDO1Climb2,TDO1Climb3,TDO1Climb4,TDO1Climb5,TDO1Climb5ind, TDO1Climb5ind2)
+```
+
+
+
+```{r}
+#Climb1-4 did NOT have three replicates, but Climb5 DID have three replicates. Here we are manipulating the data so that a column for "rep" is added onto the first data
+
+
+TDO1Climb<-TDO1Climb%>%select("vial_ID","Sex","N","Color","Treatment","group","batch","slope","r_value","std_err","Trial","rep")
+rm(list = c("TDO1Climb1","TDO1Climb2","TDO1Climb3","TDO1Climb4"))
+TDO1Climb<-clean_names(TDO1Climb)
+```
+
+TDO2 data
+```{r}
+TDO2_key<-read.csv("data/TDO2/TDO2_Lifespan.csv")
+TDO2_key<-TDO2_key%>%select("vial_ID","color","treatment","TDOconc","DMSO.","sex")
+TDO2Climb1<-read.csv("data/TDO2/do2_slopes_concatenated.csv")#10am on 7/28/23 (4-6 days)
+TDO2Climb<-merge(TDO2Climb1,TDO2_key,by=c("vial_ID"))
+TDO2Climbind<-TDO2Climb1
+TDO2Climbind$slope<-NULL
+TDO2Climbind$batch<-NULL
+TDO2Climbind2<-read.csv("data/TDO2/do2_individual_slopes.csv")#10am on 7/28/23 (4-6 days)
+TDO2Climbind<-merge(TDO2Climbind,TDO2Climbind2,by="vial_ID")  
+TDO2Climbind<-distinct(TDO2Climbind)
+TDO2Climbind<-merge(TDO2Climbind,TDO2_key,by=c("vial_ID"))
+TDO2Climbind<-clean_names(TDO2Climbind)
+TDO2Climb<-clean_names(TDO2Climb)
+TDO2Climb<-TDO2Climb%>%select("vial_id","sex","color","treatment","td_oconc","batch","slope","r_value","std_err","rep")
+rm(TDO2Climb1,TDO2Climbind2)
+
+TDO2Climbind<-TDO2Climbind%>%select("vial_id","sex","color","treatment","td_oconc","batch","slope","r_value","std_err","rep")
+TDO2Climbind<-distinct(TDO2Climbind)
+```
+Plot data for slopes
+```{r}
+ggboxplot(TDO1Climb, x = "vial_id", y = "slope",
+          add = "jitter")+
+  ggtitle("TDO1 Climbing by Vial ID - Across 5 Trials")
+
+ggboxplot(TDO2Climb, x = "vial_id", y = "slope",
+          add = "jitter")+
+  ggtitle("TDO2 Climbing by Vial ID")
+```
+
+
+```{r}
+ggboxplot(TDO1Climb%>%filter(trial=="5"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~group)+
+  ggtitle("TDO Inhibitor Flies - Group - Age 23D ")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~group)+
+  ggtitle("TDO Inhibitor Flies - Ind/Concentration - Age 23D ")
+
+ggboxplot(TDO1Climb%>%filter(trial=="5")%>%filter(group=="TDO 2.5 mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO 2.5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5")%>%filter(group=="TDO 2.5 mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO 2.5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climb%>%filter(trial=="5")%>%filter(group=="TDO 5mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO 5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5")%>%filter(group=="TDO 5mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO 5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climb%>%filter(trial=="5")%>%filter(group=="TDO 10mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO 10mM - Across 3 Reps")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5")%>%filter(group=="TDO 10mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO 10mM - Across 3 Reps")
+```
+
+
+```{r}
+ggboxplot(TDO2Climb%>%filter(color=="Red1"|color=="Blue2"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  facet_grid(~rep)+
+  ylim(-1,5)+
+  ggtitle("TDO2 10mM - Across 3 Reps - Age 4-6D")
+
+ggboxplot(TDO2Climbind%>%filter(color=="Red1"|color=="Blue2"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  facet_grid(~rep)+
+  ylim(-1,5)+
+  ggtitle("TDO2 10mM Ind - Across 3 Reps - Age 4-6D")
+
+ggboxplot(TDO2Climb%>%filter(color=="Red2"|color=="Blue2"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  facet_grid(~rep)+
+  ylim(-1,5)+
+  ggtitle("TDO2 15mM - Across 3 Reps - Age 4-6D")
+
+ggboxplot(TDO2Climbind%>%filter(color=="Red2"|color=="Blue2"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  facet_grid(~rep)+
+  ylim(-1,5)+
+  ggtitle("TDO2 15mM - Across 3 Reps - Age 4-6D")
+
+ggboxplot(TDO2Climb%>%filter(color=="Red3"|color=="Blue3"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO20mM - Across 3 Reps - Age 4-6D")
+
+ggboxplot(TDO2Climbind%>%filter(color=="Red3"|color=="Blue3"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-1,5)+
+  facet_grid(~rep)+
+  ggtitle("TDO20mM - Across 3 Reps - Age 4-6D")
+
+ggboxplot(TDO1Climb%>%filter(trial=="4")%>%filter(group=="TDO 10mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  #facet_grid(~rep)+
+  ylim(-1,5)+
+  ggtitle("TDO1 10mM - Across 3 Reps - Age 4-6D")
+```
+Did repeating any vials have an absolute effect?
+```{r}
+Repeats %>% 
+  group_by(ClimbVial, rep, Trial) %>% 
+  summarise(Slopes = mean(slope), Intercepts = mean(intercept),Trial=Trial) -> Repeats2
+Repeats2$ClimbVial<-as.factor(Repeats2$ClimbVial)
+Repeats2$rep<-as.factor(Repeats2$rep)
+Repeats2$Trial<-as.factor(Repeats2$Trial)
+
+Repeats2 %>% 
+  ggplot() +
+  aes(x = interaction(rep,ClimbVial), y = Slopes, color = rep) +
+  geom_line(aes(group = interaction(ClimbVial,Trial))) +
+  geom_point()
+
+Repeats2 %>% 
+  ggplot() +
+  aes(x = interaction(rep,ClimbVial), y = Intercepts, color = rep) +
+  geom_line(aes(group = interaction(ClimbVial,Trial))) +
+  geom_point()
+
+ggboxplot(Repeats%>%filter(rep=="1"), x = "ClimbVial", y = "slope",
+          add = "jitter")+
+  ggtitle("Climbing Slope for Repeat Climbers - First Trial")
+
+ggboxplot(Repeats%>%filter(rep=="2"), x = "ClimbVial", y = "slope",
+          add = "jitter")+
+  ggtitle("Climbing Slope for Repeat Climbers - Second Trial")
+
+ggboxplot(Repeats%>%filter(rep=="1"), x = "ClimbVial", y = "intercept",
+          add = "jitter")+
+  ggtitle("Climbing Intercept for Repeat Climbers - First Trial")
+
+ggboxplot(Repeats%>%filter(rep=="2"), x = "ClimbVial", y = "intercept",
+          add = "jitter")+
+  ggtitle("Climbing Intercept for Repeat Climbers - Second Trial")
+
+```
+
+
+Compute means
+```{r}
+Climb%>%group_by(vial_ID,Trial) %>%
+  summarise(
+    sex = sex,
+    Trial=Trial,
+    batch = batch,
+    group=group,
+    treatment = treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_Mean
+Climb%>%group_by(vial_ID,Trial,rep) %>%
+  summarise(
+    sex = sex,
+    Trial=Trial,
+    group=group,
+    treatment = treatment,
+    rep=rep,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_Mean2
+Climb%>%group_by(vial_ID,rep) %>%
+  summarise(
+    sex = sex,
+    group=group,
+    treatment = treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_MeanTrial
+Climb_Mean<-distinct(Climb_Mean)
+Climb_Mean2<-distinct(Climb_Mean2)
+Climb_MeanTrial<-distinct(Climb_MeanTrial)
+
+Climb_Mean$group<-factor(Climb_Mean$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+Climb_Mean2$group<-factor(Climb_Mean2$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+Climb_MeanTrial$group<-factor(Climb_MeanTrial$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+TDO2Climb1$color<-factor(TDO2Climb1$color, levels=c('Red1', 'Red2', 'Red3','Blue2','Blue3))
+
+DMSO<-Climb_Mean%>%filter(treatment=="DMSO")
+TDOlow<-Climb_Mean%>%filter(group=="1")
+TDOmid<-Climb_Mean%>%filter(group=="2")
+TDOhigh<-Climb_Mean%>%filter(group=="3")
+
+```
+
+
+```{r}
+p <- ggboxplot(Climb_Mean, x = "Color", y = "slope",
+          color = "Color", #palette = c("black", "red"),
+          add = "jitter")+
+  ggtitle("Slope by treatment")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Climb_Mean, x = "Color", y = "intercept",
+          color = "Color", #palette = c("black", "red"),
+          add = "jitter")+
+  ggtitle("Intercept by treatment")
+#  Add p-value
+p + stat_compare_means()
+```
+
+
+```{r}
+ggboxplot(Climb_Mean2, x = "treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(Trial~sex+group)
+  ggtitle("Climbing by sex")
+
+
+ggboxplot(Climb_Mean2, x = "treatment", y = "intercept",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(Trial~sex+group)
+  ggtitle("Climbing by sex")
+
+```
+
+```{r}
+p <- ggboxplot(Climb_MeanTrial, x = "treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~sex+group)
+  ggtitle("Climbing by sex")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(Climb_MeanTrial, x = "treatment", y = "intercept",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~sex+group)
+  ggtitle("Climbing by sex")
+#  Add p-value
+p + stat_compare_means()
+```
+
+```{r}
+ggboxplot(Climb_Mean2, x = "treatment", y = "slope",
+          color = "treatment", palette = c("purple", "black"),
+          add = "jitter")+
+  facet_grid(Trial~group)
+  ggtitle("Climbing by sex")
+
+
+ggboxplot(Climb_Mean2, x = "treatment", y = "intercept",
+          color = "treatment", palette = c("purple", "black"),
+          add = "jitter")+
+  facet_grid(Trial~group)
+  ggtitle("Climbing by treatment")
+
+```
+
+DMSO
+```{r}
+p <- ggboxplot(DMSO, x = "Color", y = "slope",
+          color = "treatment", #palette = c("purple", "black"),
+          add = "jitter")+
+  facet_grid(~Trial)
+  ggtitle("Climbing by Concentration")
+#  Add p-value
+p + stat_compare_means()
+
+p <- ggboxplot(DMSO, x = "Color", y = "intercept",
+          color = "treatment", #palette = c("purple", "black"),
+          add = "jitter")+
+  facet_grid(~Trial)
+  ggtitle("Climbing by Concentration")
+#  Add p-value
+p + stat_compare_means()
+```
+ANOVAS
+```{r}
+Climb_Mean$Trial<-as.factor(Climb_Mean$Trial)
+Climb_Mean$treatment<-as.factor(Climb_Mean$treatment)
+Climb_Mean$sex<-as.factor(Climb_Mean$sex)
+
+Climb_Mean2%>%filter(sex=="M")->Climb_MeanM
+Climb_Mean2%>%filter(sex=="F")->Climb_MeanF
+
+summary(aov(slope ~ treatment*Trial, data = Climb_MeanM%>%filter(group=="TDO 10mM")))
+summary(aov(slope ~ treatment*Trial, data = Climb_MeanF%>%filter(group=="TDO 10mM")))
+```
+Calculate sample size needed to detect significant effect in 10mM Females
+```{r}
+Climb%>%filter(sex=="F"&group=="TDO 10mM"&treatment=="DMSO")->effectsDMSO
+Climb%>%filter(sex=="F"&group=="TDO 10mM"&treatment=="TDO")->effectsTDO
+
+library(lsr)
+cohensD(effectsDMSO$slope,effectsTDO$slope)
+
+library(pwr)
+pwr.t.test(n=4, d=.48 , sig.level = .05, power = , type = c("two.sample"))
+pwr.t.test(n=, d=.48 , sig.level = .05, power = .8, type = c("two.sample"))
+
+```
