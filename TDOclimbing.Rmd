@@ -1,0 +1,145 @@
+---
+title: "R Coig's Notebook for July 2023 TDO1 experiment - Climbing Assays, Eclosion was 7/4-7/6 2023 at 3 concentrations (2.5mM,5mM,10mM)"
+output: html_notebook
+date:   7/7/23
+updated: 8/9/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(janitor)
+```
+Read in TDO1 data for data with only one rep per trial
+```{r,read in TDO1 1-rep data}
+TDO1Climb1 <- read.csv("data/TDO1/TDOClimbingTrial1.csv")#11am on 7/6/23 (1-2 days)
+TDO1Climb2 <- read.csv("data/TDO1/TDOClimbingTrial2.csv")#11am on 7/7/23 (2-3 days)
+TDO1Climb3 <- read.csv("data/TDO1/TDOClimbingTrial3.csv")#3pm on 7/7/23 (2-3 days)
+TDO1Climb4 <- read.csv("data/TDO1/TDOClimbingTrial4.csv")#11am on 7/10/23 (4-6 days)
+TDO1Climb <- rbind(TDO1Climb1,TDO1Climb2,TDO1Climb3,TDO1Climb4)#appending these data together
+rm(TDO1Climb1,TDO1Climb2,TDO1Climb3,TDO1Climb4)#removing extraneous files from environment
+TDO1Climb1ind <- read.csv("data/TDO1/lilyday0_individual_slopes.csv")#11am on 7/6/23 (1-2 days)
+TDO1Climb1ind$trial<-1
+TDO1Climb2ind <- read.csv("data/TDO1/lilyday1_individual_slopes.csv")#11am on 7/7/23 (2-3 days)
+TDO1Climb2ind$trial<-2
+TDO1Climb3ind <- read.csv("data/TDO1/lilyday1_5_individual_slopes.csv")#3pm on 7/7/23 (2-3 days)
+TDO1Climb3ind$trial<-3
+TDO1Climb4ind <- read.csv("data/TDO1/lilyday2_individual_slopes.csv")#11am on 7/10/23 (4-6 days)
+TDO1Climb4ind$trial<-4
+TDO1Climbind <- rbind(TDO1Climb1ind,TDO1Climb2ind,TDO1Climb3ind,TDO1Climb4ind)#appending these data together
+rm(TDO1Climb1ind,TDO1Climb2ind,TDO1Climb3ind,TDO1Climb4ind)#removing extraneous files from environment
+```
+Read in TDO1 data with 3 reps per trial
+```{r,read in TDO1 3-rep data}
+TDO1Reps<- read.csv("data/TDO1/reps.csv")
+TDO1Climb5 <- read.csv("data/TDO1/TDOClimbingTrial5.csv")#10am on 7/28/23 (23 days)
+TDO1Climb6 <- read.csv("data/TDO1/TDOClimbingTrial6.csv")#11am on 8/10/23 (37 days) #this is where new data goes
+TDO1Climb5ind <- read.csv("data/TDO1/do1_individual_slopes.csv")#10am on 7/28/23 (23 days)
+TDO1Climb5ind$trial<-5
+TDO1Climb5ind<-merge(TDO1Climb5ind,TDO1Reps,by="batch")#adding reps 
+TDO1Climb6ind <- read.csv("data/TDO1/doday2_individual_slopes.csv")#11am on 8/10/23 (37 days) #this is where new data goes
+TDO1Climb6ind$trial<-6
+TDO1Climb6ind<-merge(TDO1Climb6ind,TDO1Reps,by="batch")#adding reps 
+```
+Adding a "rep" column for the 1-rep data, and creating a single dataframe for group and individual data
+```{r,combining all data}
+TDO1Climb$rep<-"1" #adding the column for rep so that later when we combine with Climb5, we will have all the same columns
+TDO1Climb <- rbind(TDO1Climb,TDO1Climb5)#now all of the data is combined (Here is where you would add Climb6 group data) 
+TDO1Climbind$rep<-"1"
+TDO1Climbind<-rbind(TDO1Climbind,TDO1Climb5ind)
+rm(TDO1Climb5,TDO1Climb5ind,TDO1Reps)#removing extraneous files from environment
+TDO1Climbind<-clean_names(TDO1Climbind)
+TDO1Climb<-clean_names(TDO1Climb)
+#adding the key data into the individual file, it is already in the group one
+TDO1_Key<-TDO1Climb%>%select("vial_id","sex","n","color","treatment","group")
+TDO1Climbind<-merge(TDO1_Key,TDO1Climbind,by="vial_id")
+TDO1Climbind<-distinct(TDO1Climbind)
+TDO1Climb$group<-factor(TDO1Climb$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+TDO1Climbind$group<-factor(TDO1Climbind$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+```
+Plot data for slopes for all data
+```{r}
+ggboxplot(TDO1Climb, x = "treatment", y = "slope", color="sex",
+          add = "jitter")+
+  facet_grid(~group)+
+  ggtitle("TDO1 Climbing by group - Across 5 Trials")
+
+ggboxplot(TDO1Climbind, x = "treatment", y = "slope", color="sex",
+          add = "jitter")+
+  facet_grid(~group)+
+  ggtitle("TDO1 Individual Climbing by group - Across 5 Trials")
+```
+
+```{r}
+ggboxplot(TDO1Climb%>%filter(trial=="5"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~group)+
+  ggtitle("TDO Inhibitor Flies - Group - Age 23D ")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~group)+
+  ggtitle("TDO Inhibitor Flies - Ind/Concentration - Age 23D ")
+
+ggboxplot(TDO1Climb%>%filter(trial=="5")%>%filter(group=="TDO 2.5 mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~rep)+
+  ggtitle("TDO 2.5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5")%>%filter(group=="TDO 2.5 mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~rep)+
+  ggtitle("TDO 2.5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climb%>%filter(trial=="5")%>%filter(group=="TDO 5mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~rep)+
+  ggtitle("TDO 5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5")%>%filter(group=="TDO 5mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~rep)+
+  ggtitle("TDO 5mM - Across 3 Reps")
+
+ggboxplot(TDO1Climb%>%filter(trial=="5")%>%filter(group=="TDO 10mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~rep)+
+  ggtitle("TDO 10mM - Across 3 Reps")
+
+ggboxplot(TDO1Climbind%>%filter(trial=="5")%>%filter(group=="TDO 10mM"), x = "treatment", y = "slope",
+          color="sex", add = "jitter")+
+  ylim(-2,6)+
+  facet_grid(~rep)+
+  ggtitle("TDO 10mM - Across 3 Reps")
+```
+ANOVAS for 2.5 mM group
+```{r}
+summary(aov(slope ~ treatment*sex*trial, data = TDO1Climb%>%filter(trial!="5"&group=="TDO 2.5 mM")))
+summary(aov(slope ~ treatment*sex*trial, data = TDO1Climbind%>%filter(trial!="5"&group=="TDO 2.5 mM")))
+summary(aov(slope ~ treatment*sex*rep, data = TDO1Climb%>%filter(trial=="5"&group=="TDO 2.5 mM")))
+summary(aov(slope ~ treatment*sex*rep, data = TDO1Climbind%>%filter(trial=="5"&group=="TDO 2.5 mM")))
+```
+ANOVAS for 5 mM group
+```{r}
+summary(aov(slope ~ treatment*sex*trial, data = TDO1Climb%>%filter(trial!="5"&group=="TDO 5mM")))
+summary(aov(slope ~ treatment*sex*trial, data = TDO1Climbind%>%filter(trial!="5"&group=="TDO 5mM")))
+summary(aov(slope ~ treatment*sex*rep, data = TDO1Climb%>%filter(trial=="5"&group=="TDO 5mM")))
+summary(aov(slope ~ treatment*sex*rep, data = TDO1Climbind%>%filter(trial=="5"&group=="TDO 5mM")))
+```
+ANOVAS for 10 mM group
+```{r}
+summary(aov(slope ~ treatment*sex*trial, data = TDO1Climb%>%filter(trial!="5"&group=="TDO 10mM")))
+summary(aov(slope ~ treatment*sex*trial, data = TDO1Climbind%>%filter(trial!="5"&group=="TDO 10mM")))
+summary(aov(slope ~ treatment*sex*rep, data = TDO1Climb%>%filter(trial=="5"&group=="TDO 10mM")))
+summary(aov(slope ~ treatment*sex*rep, data = TDO1Climbind%>%filter(trial=="5"&group=="TDO 10mM")))
+```
