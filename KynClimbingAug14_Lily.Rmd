@@ -1,0 +1,145 @@
+---
+title: "R Coig's TAG Notebook for July 2023 Kyn experiment - Climbing Assays"
+output: html_notebook
+date:   8/2/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+```
+Read in data
+```{r,read in raw data}
+Climb1 <- read.csv("data/Kyn1/kyn_slopes_concatenated.csv")#9:30am  8/1/23
+Climb1b <- read.csv("data/Kyn1/kyn_individual_slopes.csv")#9:30am  8/1/23 individuals
+Key<-read.csv("data/Kyn1/Kyn1Lifespan.csv")
+Masses <- read.csv("data/Kyn1/kyn masses.csv")
+Key<-Key %>% select("vialID","Treatment","sex","dateEclosed")
+Key <- Key[-c(99:102), ]
+
+
+Climb <- merge(Climb1,Key,by=c("vialID"))
+Climbind <- merge(Climb1b,Key,by=c("vialID"))
+Climb$sex<-as.factor(Climb$sex)
+Climbind$sex<-as.factor(Climbind$sex)
+Climb$Treatment<-as.factor(Climb$Treatment)
+Climbind$Treatment<-as.factor(Climbind$Treatment)
+```
+
+
+Compute means
+```{r eval=FALSE, include=FALSE}
+Climb%>%group_by(vial_ID,Trial) %>%
+  summarise(
+    Sex = Sex,
+    Trial=Trial,
+    batch = batch,
+    group=group,
+    Treatment = Treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_Mean
+Climb%>%group_by(vial_ID,Trial) %>%
+  summarise(
+    Sex = Sex,
+    Trial=Trial,
+    group=group,
+    Treatment = Treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_Mean2
+Climb%>%group_by(vial_ID) %>%
+  summarise(
+    Sex = Sex,
+    batch = batch,
+    group=group,
+    Treatment = Treatment,
+    Color = Color,
+    slope = mean(slope, na.rm = TRUE),
+    intercept = mean(intercept, na.rm = TRUE))->Climb_MeanTrial
+Climb_Mean<-distinct(Climb_Mean)
+Climb_Mean2<-distinct(Climb_Mean2)
+Climb_MeanTrial<-distinct(Climb_MeanTrial)
+
+Climb_Mean$group<-factor(Climb_Mean$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+Climb_Mean2$group<-factor(Climb_Mean2$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+Climb_MeanTrial$group<-factor(Climb_MeanTrial$group, levels=c('TDO 2.5 mM', 'TDO 5mM', 'TDO 10mM'))
+
+DMSO<-Climb_Mean%>%filter(Treatment=="DMSO")
+TDOlow<-Climb_Mean%>%filter(group=="1")
+TDOmid<-Climb_Mean%>%filter(group=="2")
+TDOhigh<-Climb_Mean%>%filter(group=="3")
+
+```
+
+Climbing by Vial
+```{r}
+ggboxplot(Climb %>% filter(Treatment!= "Kynurenine"), x = "Treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Treatment")
+
+levels(Climb$Treatment)
+```
+
+Climbing by Individual
+```{r}
+ggboxplot(Climbind %>% filter(Treatment!= "Kynurenine"), x = "Treatment", y = "slope",
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  facet_grid(~dateEclosed)+
+  ggtitle("Climbing by Individual")
+
+```
+
+
+ANOVAS
+```{r}
+summary(aov(slope ~ Treatment*sex+dateEclosed, data = Climb))
+summary(aov(slope ~ Treatment*sex+dateEclosed, data = Climbind))
+
+```
+
+
+```{r}
+ClimbMass <- merge(Masses,Key,by=c("vialID"))
+ClimbMass <- ClimbMass %>% select(vialID, mass, N, AgeD, dateEclosed.x, Treatment, sex, dateEclosed.y) %>% mutate(avgmass = mass/N)
+ClimbMass$sex<-as.factor(ClimbMass$sex)
+ClimbMass$Treatment<-as.factor(ClimbMass$Treatment)
+```
+
+```{r}
+ggboxplot(ClimbMass, x = "Treatment", y = "avgmass", 
+          color = "sex", #palette = c("black", "red"),
+          add = "jitter")+
+  ggtitle("AvgMass by Treatment")
+
+```
+```{r}
+summary(aov(avgmass ~ Treatment*sex, data = ClimbMass))
+
+```
+
+```{r}
+ClimbMass%>%group_by(Treatment,sex) %>%
+  summarise(
+  Treatment=Treatment,
+  sex=sex,
+    mass = mean(avgmass, na.rm = TRUE))->ClimbMass2
+Climb<- merge(ClimbMass2,Climb,by=c("sex","Treatment"))
+```
+
+
+```{r}
+ggplot(Climb, aes(x=mass, y=slope, color=sex)) + geom_point()
+
+summary(aov(slope ~ mass, data = Climb))
+cor(Climb$mass,Climb$slope)
+
+summary(aov(slope ~ Treatment*mass, data = Climb))
+```
+
