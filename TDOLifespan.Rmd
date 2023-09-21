@@ -1,0 +1,257 @@
+---
+title: "R Coig's Notebook for July 2023 TDO experiment - Lifespan Assay, Eclosion was 7/4-7/6 2023 at 3 concentrations (2.5mM,5mM,10mM) - TDO2 - Lifespan Assays, Eclosion was 7/24-7/26 2023 at 3 concentrations (10mM,15mM,20mM)"
+output: html_notebook
+date:   9/5/23
+updated: 9/20/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(janitor)
+library(data.table) 
+library(splitstackshape) 
+library(survival)
+library(survminer)
+```
+Read in TDO1 data for lifespan
+```{r,read in TDO1 data}
+TDO1Lifespan <- read.csv("data/TDO1/TDO1Lifespan.csv")#11am on 7/6/23 (1-2 days)
+TDO1Lifespan$treatment <- factor(TDO1Lifespan$treatment, levels = c("TDO","DMSO"))
+TDO1Lifespan$group <- factor(TDO1Lifespan$group, levels = c("TDO 2.5 mM","TDO 5mM","TDO 10mM"))
+TDO1Lifespan$doseTDO <- factor(TDO1Lifespan$doseTDO, levels = c("0mM","2.5mM","5mM","10mM"))
+TDO1Lifespan$doseDMSO <- factor(TDO1Lifespan$doseDMSO, levels = c("2.5","5","10"))
+TDO1Lifespan$sex<-factor(TDO1Lifespan$sex)
+#Formatting for survfit
+Deaths<-expandRows(TDO1Lifespan%>%select(age.d,treatment,group,doseTDO,doseDMSO,vial,sex,dead),"dead")
+Deaths$deaths<-1
+Deaths$censored<-0
+Censored<-expandRows(TDO1Lifespan%>%select(age.d,treatment,group,doseTDO,doseDMSO,vial,sex,censored),"censored")
+Censored$deaths<-0
+Censored$censored<-1
+data<-rbind(Deaths,Censored)
+#clear environment
+rm(Deaths,Censored)
+```
+Read in TDO2 data for lifespan
+```{r,read in TDO2 data}
+TDO2Lifespan <- read.csv("data/TDO2/TDO2Lifespan.csv")
+TDO2Lifespan$treatment <- factor(TDO2Lifespan$treatment, levels = c("TDO","DMSO"))
+TDO2Lifespan$group <- factor(TDO2Lifespan$group, levels = c("Red1","Red2","Blue2","Red3","Blue3"))
+TDO2Lifespan$doseTDO <- factor(TDO2Lifespan$doseTDO, levels = c("0mM","10mM","15mM","20mM"))
+TDO2Lifespan$doseDMSO <- factor(TDO2Lifespan$doseDMSO, levels = c("10","15","20"))
+TDO2Lifespan$sex<-factor(TDO2Lifespan$sex)
+Deaths<-expandRows(TDO2Lifespan%>%select(age.d,treatment,group,doseTDO,doseDMSO,vial,sex,dead),"dead")
+Deaths$deaths<-1
+Deaths$censored<-0
+Censored<-expandRows(TDO2Lifespan%>%select(age.d,treatment,group,doseTDO,doseDMSO,vial,sex,censored),"censored")
+Censored$deaths<-0
+Censored$censored<-1
+dataTDO2<-rbind(Deaths,Censored)
+
+rm(Deaths,Censored)
+```
+
+Kaplan Meier for TDO1
+```{r}
+my_colors <- c("orange", "purple")
+
+TDO2.5<-data%>%filter(treatment=="TDO"&doseTDO=="2.5mM")
+TDO5<-data%>%filter(treatment=="TDO"&doseTDO=="5mM")
+TDO10<-data%>%filter(treatment=="TDO"&doseTDO=="10mM")
+DMSO2.5<-data%>%filter(treatment=="DMSO"&doseDMSO=="2.5")
+DMSO5<-data%>%filter(treatment=="DMSO"&doseDMSO=="5")
+DMSO10<-data%>%filter(treatment=="DMSO"&doseDMSO=="10")
+DMSO<-data%>%filter(treatment=="DMSO")
+data2<-data
+
+fit.sex<-survfit(Surv(age.d,deaths)~sex, data=data2)
+ggsurvplot(
+  fit.sex,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO1 experiment, w[1118] obs=417",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.DMSO2.5<-survfit(Surv(age.d,deaths)~sex, data=DMSO2.5)
+ggsurvplot(
+  fit.DMSO2.5,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO2.5 group, w[1118] obs=56",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.DMSO5<-survfit(Surv(age.d,deaths)~sex, data=DMSO5)
+ggsurvplot(
+  fit.DMSO5,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO5 group, w[1118] obs=75",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.DMSO10<-survfit(Surv(age.d,deaths)~sex, data=DMSO10)
+ggsurvplot(
+  fit.DMSO10,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO10 group, w[1118] obs=52",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.DMSO<-survfit(Surv(age.d,deaths)~sex, data=DMSO)
+ggsurvplot(
+  fit.DMSO,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO group, w[1118] obs=183",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.TDO2.5<-survfit(Surv(age.d,deaths)~sex, data=TDO2.5)
+ggsurvplot(
+  fit.TDO2.5,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO2.5 group, w[1118] obs=86",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.TDO5<-survfit(Surv(age.d,deaths)~sex, data=TDO5)
+ggsurvplot(
+  fit.TDO5,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO5 group, w[1118] obs=75",
+  pval = TRUE,
+  palette = my_colors
+)
+
+fit.TDO10<-survfit(Surv(age.d,deaths)~sex, data=TDO10)
+ggsurvplot(
+  fit.TDO10,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO10 group, w[1118] obs=73",
+  pval = TRUE,
+  palette = my_colors
+)
+```
+
+Kaplan Meier for TDO2
+```{r}
+TDO10<-dataTDO2%>%filter(group=="Red1")
+TDO15<-dataTDO2%>%filter(group=="Red2")
+TDO20<-dataTDO2%>%filter(group=="Red3")
+DMSO15<-dataTDO2%>%filter(group=="Blue2")
+DMSO20<-dataTDO2%>%filter(group=="Blue3")
+DMSO<-dataTDO2%>%filter(treatment=="DMSO")
+
+fit.sex<-survfit(Surv(age.d,deaths)~sex, data=dataTDO2)
+ggsurvplot(
+  fit.sex,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO2 experiment, w[1118] obs=660",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+)
+
+fit.group<-survfit(Surv(age.d,deaths)~sex+group, data=dataTDO2)
+ggsurvplot(
+  fit.group,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO2 experiment, w[1118] obs=660",
+  pval = TRUE,  
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+fit.TDO10<-survfit(Surv(age.d,deaths)~sex, data=TDO10)
+ggsurvplot(
+  fit.TDO10,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO10 group, w[1118] obs=147",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+fit.TDO15<-survfit(Surv(age.d,deaths)~sex, data=TDO15)
+ggsurvplot(
+  fit.TDO15,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO15 group, w[1118] obs=179",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+fit.TDO20<-survfit(Surv(age.d,deaths)~sex, data=DMSO20)
+ggsurvplot(
+  fit.TDO20,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "TDO20 group, w[1118] obs=67",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+fit.DMSO15<-survfit(Surv(age.d,deaths)~sex, data=DMSO15)
+ggsurvplot(
+  fit.DMSO15,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO15 group, w[1118] obs=179",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+fit.DMSO20<-survfit(Surv(age.d,deaths)~sex, data=DMSO20)
+ggsurvplot(
+  fit.DMSO20,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO20 group, w[1118] obs=88",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+fit.DMSO<-survfit(Surv(age.d,deaths)~sex, data=DMSO)
+ggsurvplot(
+  fit.DMSO,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO group, w[1118] obs=267",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+
+```
+
