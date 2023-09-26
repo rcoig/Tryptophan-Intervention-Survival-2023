@@ -1,0 +1,126 @@
+---
+title: "R Coig's TAG Notebook for Kyn2 experiment - Formatting Pupae Development Time"
+output: html_notebook
+date:   7/31/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(tidyr)
+```
+Read in data
+```{r}
+Dev <- read.csv("data/Kyn2/Kyn2Development.csv")
+Key <- read.csv("data/Kyn2/Kyn2BottleKey.csv")
+Key$Start<-paste(Key$DateStarted,Key$TimeStarted)
+```
+
+```{r}
+Key2<-Key%>%select("Bottle","NEggs","Geno","Treatment","Start")
+Dev<-merge(Key2,Dev,by="Bottle")
+```
+
+
+```{r}
+Dev$Start <- as.POSIXct(Dev$Start, format = "%m/%d/%Y %I:%M %p")
+Dev$Observed<-paste(Dev$Date,Dev$Time)
+Dev$Observed <- as.POSIXct(Dev$Observed, format = "%m/%d/%Y %I:%M %p")
+```
+
+
+```{r}
+# Calculate the time passed in hours
+Dev$Hours <- as.numeric(difftime(with(Dev, Observed), 
+                                            with(Dev, Start), 
+                                            units = "hours"))
+#Dev$Hours<-as.factor(Dev$Hours)
+# Calculate the final total for each "Bottle"
+final_totals <- Dev %>%
+  group_by(Bottle) %>%
+  summarise(Final_Total_males = sum(MalePupae),
+            Final_Total_females = sum(FemalePupae),
+            Final_Total_sexed = sum(MalePupae,FemalePupae),
+            Final_Total_pupae = sum(Pupae))
+
+final_totals_treat <- Dev %>%
+  group_by(Geno,Treatment) %>%
+  summarise(Final_Total_males = sum(MalePupae),
+            Final_Total_females = sum(FemalePupae),
+            Final_Total_sexed = sum(MalePupae,FemalePupae),
+            Final_Total_pupae = sum(Pupae))
+
+final_totals2 <- Dev %>%
+  group_by(Bottle) %>%
+  summarise(Geno=Geno,
+            Treatment=Treatment,
+            Final_Total_males = sum(MalePupae),
+            Final_Total_females = sum(FemalePupae),
+            Final_Total_sexed = sum(MalePupae,FemalePupae),
+            Final_Total_pupae = sum(Pupae))
+final_totals2<-distinct(final_totals2)
+
+```
+
+```{r}
+# Calculate the cumulative sum and proportion based on final total
+cumulative_data_bottle <- Dev %>%
+  group_by(Bottle, Location) %>%
+  arrange(Bottle, Location, Hours) %>%
+  mutate(Cumu_N_M = cumsum(MalePupae),Cumu_N_F = cumsum(FemalePupae),Cumu_N_P = cumsum(Pupae)) %>%
+  left_join(final_totals, by = "Bottle") %>%
+  mutate(ProportionMofM = Cumu_N_M / Final_Total_males,
+         ProportionMofTotal = Cumu_N_M / Final_Total_sexed,
+         ProportionFofF = Cumu_N_F / Final_Total_females,
+         ProportionFofTotal = Cumu_N_F / Final_Total_sexed,
+         ProportionP = Cumu_N_P / Final_Total_pupae)
+
+cumulative_data <- Dev %>%
+  group_by(Geno,Treatment,Location) %>%
+  arrange(Geno, Treatment,Location, Hours) %>%
+  mutate(Cumu_N_M = cumsum(MalePupae),Cumu_N_F = cumsum(FemalePupae),Cumu_N_P = cumsum(Pupae)) %>%
+  left_join(final_totals_treat, by = c("Geno","Treatment")) %>%
+  mutate(ProportionMofM = Cumu_N_M / Final_Total_males,
+         ProportionMofTotal = Cumu_N_M / Final_Total_sexed,
+         ProportionFofF = Cumu_N_F / Final_Total_females,
+         ProportionFofTotal = Cumu_N_F / Final_Total_sexed,
+         ProportionP = Cumu_N_P / Final_Total_pupae)
+
+cumulative_data_noLoc <- Dev %>%
+  group_by(Geno,Treatment) %>%
+  arrange(Geno, Treatment, Hours) %>%
+  mutate(Cumu_N_M = cumsum(MalePupae),Cumu_N_F = cumsum(FemalePupae),Cumu_N_P = cumsum(Pupae)) %>%
+  left_join(final_totals_treat, by = c("Geno","Treatment")) %>%
+  mutate(ProportionMofM = Cumu_N_M / Final_Total_males,
+         ProportionMofTotal = Cumu_N_M / Final_Total_sexed,
+         ProportionFofF = Cumu_N_F / Final_Total_females,
+         ProportionFofTotal = Cumu_N_F / Final_Total_sexed,
+         ProportionP = Cumu_N_P / Final_Total_pupae)
+cumulative_data_noLoc<-cumulative_data_noLoc%>%select(-Location)
+cumulative_data_noLoc<-distinct(cumulative_data_noLoc)
+
+```
+
+```{r}
+final_totals2%>%group_by(Treatment,Geno) %>%
+summarise(
+    Treatment = Treatment,
+    Geno=Geno,
+    TotalF = sum(Final_Total_females, na.rm = TRUE),
+    TotalM = sum(Final_Total_males, na.rm = TRUE),
+    TotalP = sum(Final_Total_pupae, na.rm = TRUE),
+    )->TotalP
+TotalP<-distinct(TotalP)
+
+TotalP$Ratio<-TotalP$TotalF/TotalP$TotalM
+
+```
+
+
+```{r}
+write.csv(cumulative_data_bottle, "data/Kyn2/Kyn2 DevTime.csv", row.names = FALSE)
+write.csv(cumulative_data, "data/Kyn2/Kyn2 DevTime2.csv", row.names = FALSE)
+write.csv(cumulative_data_noLoc, "data/Kyn2/Kyn2 DevTime3.csv", row.names = FALSE)
+
+```
