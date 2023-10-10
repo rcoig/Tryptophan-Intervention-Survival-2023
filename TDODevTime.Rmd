@@ -1,0 +1,91 @@
+---
+title: "R Coig's TAG Notebook for July 2023 TDO experiment - Pupae Development Time"
+output: html_notebook
+date:   7/7/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(growthcurver)
+```
+Read in data
+```{r,read in raw data}
+MDev <- read.csv("TDO 072023/TDO M DevTimeAdd.csv")
+FDev <- read.csv("TDO 072023/TDO F DevTimeAdd.csv")
+Dev<-rbind(FDev,MDev)
+```
+Compute means
+```{r}
+Dev%>%group_by(Color,Time,Sex) %>%
+  summarise(
+    Sex = Sex,
+    EggPicker = EggPicker,
+    Treatment = Treatment,
+    Color = Color,
+    group=group,
+    Time=Time,
+    NTreat = sum(N, na.rm = TRUE))->Dev_Sum
+Dev_Sum<-distinct(Dev_Sum)
+Dev_Sum$group<-factor(Dev_Sum$group, levels=c('TDO 2.5mM', 'TDO 5mM', 'TDO 10mM'))
+levels(Dev_Sum$group)
+Dev_Sum$Time<-factor(Dev_Sum$Time)
+TDOHighDev<-Dev_Sum%>%filter(group=="TDO 10mM")
+TDOMidDev<-Dev_Sum%>%filter(group=="TDO 5mM")
+TDOLowDev<-Dev_Sum%>%filter(group=="TDO 2.5mM")
+DMSODev<-Dev_Sum%>%filter(Treatment=="DMSO")
+
+Dev%>%group_by(Color,Time,Sex,EggPicker) %>%
+  summarise(
+    Sex = Sex,
+    EggPicker = EggPicker,
+    Treatment = Treatment,
+    Color = Color,
+    group=group,
+    Time=Time,
+    NTreat = sum(N, na.rm = TRUE))->Dev_Sum2
+Dev_Sum2<-distinct(Dev_Sum2)
+Dev_Sum2$group<-factor(Dev_Sum2$group, levels=c('TDO 2.5mM', 'TDO 5mM', 'TDO 10mM'))
+levels(Dev_Sum2$group)
+Dev_Sum2$Time<-factor(Dev_Sum2$Time)
+```
+
+
+```{r}
+Dev_Sum$SexTreat<-paste(Dev_Sum$Treatment,Dev_Sum$Sex)
+Dev_Sum2$SexTreat<-paste(Dev_Sum2$Treatment,Dev_Sum2$Sex)
+
+ggplot(Dev_Sum, aes(x = Time, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~group)+
+  xlab("Time point")+
+  ylab("Population")+
+  ggtitle("Eclosion Time by TDO Concentration and Sex, w[1118]")
+
+ggplot(Dev_Sum2%>%filter(EggPicker=="LH"), aes(x = Time, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~group)+
+  xlab("Time point")+
+  ylab("Population")+
+  ggtitle("Eclosion Time by TDO Concentration and Sex, w[1118]")
+
+ggplot(Dev_Sum2%>%filter(EggPicker=="RC"), aes(x = Time, y = NTreat, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple", "black"))+
+  facet_grid(~group)+
+  xlab("Time point")+
+  ylab("Population")+
+  ggtitle("Eclosion Time by TDO Concentration and Sex, w[1118]")
+```
+ANOVAS
+```{r}
+summary(aov(NTreat ~ Sex*Color, data = DMSODev))
+summary(aov(NTreat ~ Sex*Treatment, data = TDOLowDev))
+summary(aov(NTreat ~ Sex*Treatment, data = TDOMidDev))
+summary(aov(NTreat ~ Sex*Treatment, data = TDOHighDev))
+```
