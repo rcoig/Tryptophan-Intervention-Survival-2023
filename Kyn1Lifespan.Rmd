@@ -1,0 +1,225 @@
+---
+title: "R Coig's Notebook for July 2023 Kyn experiment - Lifespan Assay"
+output: html_notebook
+date:   9/5/23
+updated: 10/12/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(janitor)
+library(data.table) 
+library(splitstackshape) 
+library(survival)
+library(survminer)
+```
+Read in Kyn1 data for lifespan
+```{r,read in Kyn1 data}
+Kyn1Lifespan <- read.csv("data/Kyn1/Kyn1Lifespan.csv")
+Kyn1Lifespan$treatment <- factor(Kyn1Lifespan$treatment, levels = c("KynA","Kynurenine","DMSO"))
+Kyn1Lifespan$group <- factor(Kyn1Lifespan$group, levels = c("Orange","Green1","Green2","Pink"))
+Kyn1Lifespan$dose <- factor(Kyn1Lifespan$dose, levels = c("0mg/mL","1mg/mL","3mg/mL"))
+Kyn1Lifespan$sex<-factor(Kyn1Lifespan$sex)
+#Formatting for survfit
+Deaths<-expandRows(Kyn1Lifespan%>%select(age.d,treatment,group,dose,vial,sex,dead,dateEclosed),"dead")
+Deaths$deaths<-1
+Deaths$censored<-0
+Censored<-expandRows(Kyn1Lifespan%>%select(age.d,treatment,group,dose,vial,sex,censored,dateEclosed),"censored")
+Censored$deaths<-0
+Censored$censored<-1
+data<-rbind(Deaths,Censored)
+#clear environment
+rm(Deaths,Censored)
+```
+
+Kaplan Meier for Kyn1
+```{r}
+data2<-data
+my_colors <- c("orange", "purple")
+
+fit.sex<-survfit(Surv(age.d,deaths)~sex, data=data2)
+ggsurvplot(
+  fit.sex,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kyn1 experiment, w[1118] obs=928",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+female<-data%>%filter(sex=="Female")
+fit.groupF<-survfit(Surv(age.d,deaths)~treatment+dose, data=female)
+# Use the ggsurvplot function with the custom group variable and customized labels
+ggsurvplot(
+  fit.groupF,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kyn1 experiment, females w[1118] obs=443",
+  pval = TRUE,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+male<-data%>%filter(sex=="Male")
+fit.groupM<-survfit(Surv(age.d,deaths)~treatment+dose, data=male)
+# Use the ggsurvplot function with the custom group variable and customized labels
+ggsurvplot(
+  fit.groupM,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kyn1 experiment, males w[1118] obs=485",
+  pval = TRUE,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+DMSO<-data%>%filter(group=="Orange")
+KynA1<-data%>%filter(group=="Green1")
+KynA2<-data%>%filter(group=="Green2")
+Kyn<-data%>%filter(group=="Pink")
+DMSO<-data%>%filter(treatment=="DMSO")
+
+fit.DMSO<-survfit(Surv(age.d,deaths)~sex, data=DMSO)
+ggsurvplot(
+  fit.DMSO,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO group, w[1118] obs=345",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+fit.KynA1<-survfit(Surv(age.d,deaths)~sex, data=KynA1)
+ggsurvplot(
+  fit.KynA1,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "KynA 1mg/mL group, w[1118] obs=226",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+fit.KynA2<-survfit(Surv(age.d,deaths)~sex, data=KynA2)
+ggsurvplot(
+  fit.KynA2,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "KynA 3mg/mL group, w[1118] obs=178",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+fit.Kyn<-survfit(Surv(age.d,deaths)~sex, data=Kyn)
+ggsurvplot(
+  fit.Kyn,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kynurenine 1mg/mL group, w[1118] obs=179",
+  pval = TRUE,
+  palette = my_colors,
+    xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+
+)
+
+
+```
+```{r}
+fit.sex<-survfit(Surv(age.d,deaths)~sex, data=data2)
+ggsurvplot(
+  fit.sex,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kyn1 experiment, w[1118] obs=928",
+  pval = TRUE,
+  palette = my_colors,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+
+female<-data%>%filter(sex=="Female")
+fit.groupF<-survfit(Surv(age.d,deaths)~treatment+dose, data=female)
+# Use the ggsurvplot function with the custom group variable and customized labels
+ggsurvplot(
+  fit.groupF,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kyn1 experiment, females w[1118] obs=443",
+  pval = TRUE,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+
+male<-data%>%filter(sex=="Male")
+fit.groupM<-survfit(Surv(age.d,deaths)~treatment+dose, data=male)
+# Use the ggsurvplot function with the custom group variable and customized labels
+ggsurvplot(
+  fit.groupM,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kyn1 experiment, males w[1118] obs=485",
+  pval = TRUE,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+
+DMSO<-data%>%filter(group=="Orange")
+KynA1<-data%>%filter(group=="Green1")
+KynA2<-data%>%filter(group=="Green2")
+Kyn<-data%>%filter(group=="Pink")
+DMSO<-data%>%filter(treatment=="DMSO")
+
+fit.DMSO<-survfit(Surv(age.d,deaths)~sex, data=DMSO)
+ggsurvplot(
+  fit.DMSO,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "DMSO group, w[1118] obs=345",
+  pval = TRUE,
+  palette = my_colors,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+fit.KynA1<-survfit(Surv(age.d,deaths)~sex, data=KynA1)
+ggsurvplot(
+  fit.KynA1,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "KynA 1mg/mL group, w[1118] obs=226",
+  pval = TRUE,
+  palette = my_colors,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+fit.KynA2<-survfit(Surv(age.d,deaths)~sex, data=KynA2)
+ggsurvplot(
+  fit.KynA2,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "KynA 3mg/mL group, w[1118] obs=178",
+  pval = TRUE,
+  palette = my_colors,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+fit.Kyn<-survfit(Surv(age.d,deaths)~sex, data=Kyn)
+ggsurvplot(
+  fit.Kyn,
+  conf.int = FALSE,
+  xlab = "Time (days)",
+  title = "Kynurenine 1mg/mL group, w[1118] obs=179",
+  pval = TRUE,
+  palette = my_colors,
+  xlim = c(0, 80)  # Set the x-axis limits from 0 to 80
+  
+)
+```
+
