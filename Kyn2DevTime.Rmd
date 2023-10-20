@@ -1,0 +1,133 @@
+---
+title: "R Coig's TAG Notebook for  2023 Kyn2 experiment - Pupae Development Time"
+output: html_notebook
+date:   9/26/23
+---
+Rene Coig renecoig@uw.edu
+
+Load required packages
+```{r,load packages}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(growthcurver)
+```
+Read in data
+```{r,read in raw data}
+Dev<-read.csv("data/Kyn2/Kyn2 DevTime.csv")
+Dev$Location<-factor(Dev$Location,levels=c("Bottom","Middle","Top","AboveTop"))
+DevPlot<-Dev%>%select("Hours","Bottle","Hours","Location","Treatment","Geno","ProportionMofTotal","ProportionFofTotal")
+DevPlot<-DevPlot%>%rename(Male=ProportionMofTotal,Female=ProportionFofTotal)
+# Melt the data to combine the two proportion columns
+melted_data <- DevPlot %>%
+  pivot_longer(
+    cols = c("Male", "Female"),
+    names_to = "Sex",
+    values_to = "ProportionofTotal"
+  )
+
+Dev<-read.csv("data/Kyn2/Kyn2 DevTime2.csv")
+Dev$Location<-factor(Dev$Location,levels=c("Bottom","Middle","Top","AboveTop"))
+DevPlot<-Dev%>%select("Hours","Location","Treatment","Geno","ProportionMofTotal","ProportionFofTotal")
+DevPlot<-DevPlot%>%rename(Male=ProportionMofTotal,Female=ProportionFofTotal)
+# Melt the data to combine the two proportion columns
+melted_data <- DevPlot %>%
+  pivot_longer(
+    cols = c("Male", "Female"),
+    names_to = "Sex",
+    values_to = "ProportionofTotal"
+  )
+
+Dev<-read.csv("data/Kyn2/Kyn2 DevTime3.csv")
+DevPlot<-Dev%>%select("Hours","Treatment","Geno","ProportionMofTotal","ProportionFofTotal")
+DevPlot<-DevPlot%>%rename(Male=ProportionMofTotal,Female=ProportionFofTotal)
+# Melt the data to combine the two proportion columns
+melted_data <- DevPlot %>%
+  pivot_longer(
+    cols = c("Male", "Female"),
+    names_to = "Sex",
+    values_to = "ProportionofTotal"
+  )
+```
+
+```{r}
+ggplot(melted_data%>%filter(Geno=="w1118"), aes(x = Hours, y = ProportionofTotal, group = interaction(Bottle,Sex)))+
+  geom_line(aes(color=Sex),linewidth=1)+
+  scale_color_manual(values=c("orange","purple"))+
+  #facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion of Total")+
+  ggtitle("Kyn2 Experiment, w[1118]")+
+  facet_wrap(~Treatment+Location,nrow=2)+
+  ylim(0,0.5)+
+  xlim(200,300)+
+  theme_classic()
+
+ggplot(melted_data%>%filter(Geno=="CS"), aes(x = Hours, y = ProportionofTotal, group = interaction(Bottle,Sex)))+
+  geom_line(aes(color=Sex),linewidth=1)+
+  scale_color_manual(values=c("orange","purple"))+
+  #facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion of Total")+
+  ggtitle("Kyn2 Experiment, CS")+
+  facet_wrap(~Treatment+Location,nrow=2)+
+  ylim(0,0.5)+
+  xlim(200,300)+
+  theme_classic()
+```
+
+```{r}
+ggplot(melted_data, aes(x = Hours, y = ProportionofTotal, group = interaction(Location,Sex)))+
+  geom_line(aes(color=Sex,linetype=Location),linewidth=1)+
+  scale_color_manual(values=c("orange","purple"))+
+  #facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion of Total")+
+  ggtitle("Kyn2 Experiment, w[1118]")+
+  facet_wrap(~Treatment+Geno+Location,nrow=2)+
+  ylim(0,0.5)+
+  xlim(200,300)+
+  theme_classic()
+```
+```{r}
+ggplot(melted_data, aes(x = Hours, y = ProportionofTotal, group = interaction(Treatment, Sex))) +
+  stat_smooth(aes(color = Sex, linetype = Treatment), geom = "line", method = "loess", se = FALSE) +
+  scale_color_manual(values = c("orange", "purple")) +
+  scale_linetype_manual(values = c("solid", "dashed")) +  # Replace with your treatments and desired line types
+  xlab("Hours") +
+  ylab("Proportion of Total") +
+  ggtitle("Kyn2 Experiment") +
+  facet_wrap(~Geno, nrow = 2) +
+  ylim(0, 0.5) +
+  xlim(200, 300) +
+  theme_classic()
+
+
+```
+
+
+
+Proportion uneclosed
+```{r}
+ggplot(Dev_Sum, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple","red","mediumblue", "darkblue"))+
+  #facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("Kyn Experiment, w[1118]")+
+  theme_classic()
+
+ggplot(Dev_Sum, aes(x = Hours, y = Prop, group = interaction(Treatment,Sex)))+
+  geom_line(aes(color=Treatment, linetype=Sex),linewidth=1)+
+  scale_color_manual(values=c("purple","red","mediumblue", "darkblue"))+
+  facet_grid(~Treatment)+
+  xlab("Hours")+
+  ylab("Proportion Uneclosed")+
+  ggtitle("Kyn Experiment, w[1118]")
+```
+
+ANOVAS
+```{r}
+
+```
